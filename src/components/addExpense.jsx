@@ -30,10 +30,10 @@ export default function AddExpense({ onSave }) {
 
   // JOI VALIDATION SCHEMA
   const schema = Joi.object({
-    date: Joi.string().required().label("Date"),
+    date: Joi.date().iso().max("now").required().label("Date"),
     amount: Joi.number().min(1).required().label("Amount"),
     description: Joi.string().min(3).required().label("Description"),
-    category: Joi.string().required().label("Category"),
+    category: Joi.string().min(3).required().label("Category"),
     type: Joi.string().required(),
     selectedGroup: Joi.string().when("type", {
       is: "group",
@@ -88,6 +88,18 @@ export default function AddExpense({ onSave }) {
 
     if (!validateField()) return;
 
+    if (type === "group" && selectedSplit === "custom") {
+      const totalCustomAmount = customSplitData.reduce(
+        (sum, item) => sum + Number(item.amount || 0),
+        0
+      );
+
+      if (totalCustomAmount !== Number(amount)) {
+        alert("Total split amount must be equal to the main amount.");
+        return;
+      }
+    }
+
     const expense = {
       id: "R_" + Date.now(),
       date,
@@ -132,6 +144,12 @@ export default function AddExpense({ onSave }) {
     if (!groupObj) return;
 
     const members = groupObj.members || [];
+
+    if (!amount || Number(amount) <= 0) {
+      setEqualSplitData([]);
+      setCustomSplitData([]);
+      return;
+    }
 
     // Equal Split
     if (selectedSplit === "equal" && amount) {
