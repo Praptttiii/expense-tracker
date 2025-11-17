@@ -7,7 +7,6 @@ export default function ExpenseList() {
   const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
-  const [filterCategory, setFilterCategory] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
@@ -53,12 +52,21 @@ export default function ExpenseList() {
         exp.category.toLowerCase().includes(search.toLowerCase()) ||
         exp.type.toLowerCase().includes(search.toLowerCase())
     )
-    .filter((exp) => (filterCategory ? exp.category === filterCategory : true))
     .filter((exp) => {
       if (fromDate && exp.date < fromDate) return false;
       if (toDate && exp.date > toDate) return false;
       return true;
     });
+
+  const clearSearch = () => {
+    setSearch("");
+    setFromDate("");
+    setToDate("");
+
+    // Reset the list to full data
+    const data = JSON.parse(localStorage.getItem("expenses")) || [];
+    setExpenses(data);
+  };
 
   return (
     <div className="container mt-5">
@@ -80,7 +88,7 @@ export default function ExpenseList() {
         <>
           {/*  Search + Filters UI */}
           <div className="card p-3 mb-3 shadow-sm">
-            <div className="row g-3">
+            <div className="row g-3 align-items-center">
               <div className="col-md-4">
                 <input
                   type="text"
@@ -89,23 +97,6 @@ export default function ExpenseList() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
-              </div>
-
-              <div className="col-md-3">
-                <select
-                  className="form-select"
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                >
-                  <option value="">All Categories</option>
-                  {Array.from(new Set(expenses.map((e) => e.category))).map(
-                    (cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    )
-                  )}
-                </select>
               </div>
 
               <div className="col-md-2">
@@ -125,6 +116,17 @@ export default function ExpenseList() {
                   onChange={(e) => setToDate(e.target.value)}
                 />
               </div>
+              {(search || fromDate || toDate) && (
+                <div className="col d-flex justify-content-end ms-auto">
+                  <button
+                    className="btn btn-danger"
+                    onClick={clearSearch}
+                    title="Clear Search"
+                  >
+                    <i className="bi bi-x"></i>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

@@ -44,6 +44,8 @@ export default function CreateGroup() {
     alert("Group Created Successfully!");
 
     setGroupName("");
+    setMembers([]);
+    localStorage.removeItem("membersList");
   };
 
   const deleteGroup = (id) => {
