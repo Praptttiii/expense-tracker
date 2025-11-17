@@ -136,8 +136,8 @@ export default function ExpenseList() {
               columns={columns}
               data={filteredData}
               pagination
-              paginationPerPage={3}
-              paginationRowsPerPageOptions={[3, 5, 7]}
+              paginationPerPage={5}
+              paginationRowsPerPageOptions={[5, 10, 15]}
               highlightOnHover
               striped
             />

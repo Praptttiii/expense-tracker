@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Joi from "joi";
 
@@ -13,7 +13,7 @@ export default function AddExpense({ onSave }) {
   const [newCategory, setNewCategory] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
   const [errors, setErrors] = useState({});
-
+  const [selectedSplit, setSelectedSplit] = useState("");
   const [categories, setCategories] = useState(
     JSON.parse(localStorage.getItem("categories")) || [
       "Food",
@@ -21,10 +21,12 @@ export default function AddExpense({ onSave }) {
       "Travel",
     ]
   );
-
+  const [equalSplitData, setEqualSplitData] = useState([]);
+  const [customSplitData, setCustomSplitData] = useState([]);
   const [groups] = useState(
-    (JSON.parse(localStorage.getItem("groupsList")) || []).map((g) => g.name)
+    JSON.parse(localStorage.getItem("groupsList")) || []
   );
+  const [customError, setCustomError] = useState("");
 
   // JOI VALIDATION SCHEMA
   const schema = Joi.object({
@@ -38,6 +40,11 @@ export default function AddExpense({ onSave }) {
       then: Joi.string().required().label("Group"),
       otherwise: Joi.string().allow(""),
     }),
+    selectedSplit: Joi.string().when("type", {
+      is: "group",
+      then: Joi.string().required().label("Split Type"),
+      otherwise: Joi.string().allow(""),
+    }),
   });
 
   const validateField = () => {
@@ -48,6 +55,7 @@ export default function AddExpense({ onSave }) {
       category,
       type,
       selectedGroup,
+      selectedSplit,
     };
 
     const result = schema.validate(formData, { abortEarly: false });
@@ -102,7 +110,9 @@ export default function AddExpense({ onSave }) {
     setType("personal");
     setNewCategory("");
     setSelectedGroup("");
-
+    setSelectedSplit("");
+    setEqualSplitData("");
+    setCustomSplitData("");
     alert("Expense Added!");
     onSave();
   };
@@ -111,11 +121,75 @@ export default function AddExpense({ onSave }) {
     setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
+  useEffect(() => {
+    if (type !== "group" || !selectedGroup) {
+      setEqualSplitData([]);
+      setCustomSplitData([]);
+      return;
+    }
+
+    const groupObj = groups.find((g) => g.name === selectedGroup);
+    if (!groupObj) return;
+
+    const members = groupObj.members || [];
+
+    // Equal Split
+    if (selectedSplit === "equal" && amount) {
+      const splitAmount = Number(amount) / members.length;
+
+      const equalData = members.map((m) => ({
+        name: m,
+        amount: splitAmount.toFixed(2),
+      }));
+
+      setEqualSplitData(equalData);
+      setCustomSplitData([]);
+    }
+
+    // Custom Split
+    if (selectedSplit === "custom") {
+      const customData = members.map((m) => ({
+        name: m,
+        amount: "",
+      }));
+
+      setCustomSplitData(customData);
+      setEqualSplitData([]);
+    }
+  }, [type, selectedGroup, selectedSplit, amount]);
+
+  const updateCustomAmount = (index, value) => {
+    const updated = [...customSplitData];
+    updated[index].amount = value;
+    setCustomSplitData(updated);
+    validateCustomSplit(updated);
+  };
+
+  const validateCustomSplit = (data) => {
+    const totalEntered = Number(amount);
+    const totalCustom = data.reduce(
+      (sum, item) => sum + Number(item.amount || 0),
+      0
+    );
+
+    if (totalCustom > totalEntered) {
+      setCustomError("Custom split total cannot exceed the entered amount.");
+    } else if (totalCustom < totalEntered) {
+      setCustomError(
+        `You need to assign ₹${(totalEntered - totalCustom).toFixed(
+          2
+        )} more to match the total amount.`
+      );
+    } else {
+      setCustomError(""); // valid
+    }
+  };
+
   return (
-    <div className="container mt-5 d-flex justify-content-center">
-      <div className="shadow-lg rounded-4 p-4 bg-white w-50">
+    <div className="container mt-5">
+      <div className="card shadow-lg rounded-4 p-4">
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2 className="fw-bold text-primary">
+          <h2 className="fw-bold text-primary mb-0">
             <i className="bi bi-receipt-cutoff me-2"></i>Add Expense
           </h2>
           <button
@@ -126,149 +200,197 @@ export default function AddExpense({ onSave }) {
           </button>
         </div>
 
-        {/* DATE */}
         <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label className="form-label fw-semibold">Date</label>
-            <input
-              type="date"
-              className="form-control form-control-lg rounded-3"
-              value={date}
-              onChange={(e) => {
-                setDate(e.target.value);
-                clearError("date");
-              }}
-            />
-            {errors.date && <p className="text-danger mt-1">{errors.date}</p>}
-          </div>
+          <div className="row g-4">
+            <div className="col-md-6">
+              {/* DATE */}
+              <label className="form-label fw-semibold">Date</label>
+              <input
+                type="date"
+                className="form-control rounded-3 mb-3"
+                value={date}
+                onChange={(e) => {
+                  setDate(e.target.value);
+                  clearError("date");
+                }}
+              />
+              {errors.date && <p className="text-danger">{errors.date}</p>}
 
-          {/* AMOUNT */}
-          <div className="mb-3">
-            <label className="form-label fw-semibold">Amount (₹)</label>
-            <input
-              type="number"
-              className="form-control form-control-lg rounded-3"
-              value={amount}
-              onChange={(e) => {
-                setAmount(e.target.value);
-                clearError("amount");
-              }}
-            />
+              {/* AMOUNT */}
+              <label className="form-label fw-semibold">Amount (₹)</label>
+              <input
+                type="number"
+                className="form-control rounded-3 mb-3"
+                value={amount}
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  clearError("amount");
+                }}
+              />
+              {errors.amount && <p className="text-danger">{errors.amount}</p>}
 
-            {errors.amount && (
-              <p className="text-danger mt-1">{errors.amount}</p>
-            )}
-          </div>
-
-          {/* DESCRIPTION */}
-          <div className="mb-3">
-            <label className="form-label fw-semibold">Description</label>
-            <input
-              type="text"
-              className="form-control form-control-lg rounded-3"
-              value={description}
-              onChange={(e) => {
-                setDescription(e.target.value);
-                clearError("description");
-              }}
-            />
-            {errors.description && (
-              <p className="text-danger mt-1">{errors.description}</p>
-            )}
-          </div>
-
-          {/* CATEGORY */}
-          <div className="mb-3">
-            <label className="form-label fw-semibold">Category</label>
-
-            <select
-              className="form-select form-select-lg rounded-3"
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                clearError("category");
-              }}
-            >
-              <option value="">Select Category</option>
-              {categories.map((c, i) => (
-                <option key={i} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-
-            {errors.category && (
-              <p className="text-danger mt-1">{errors.category}</p>
-            )}
-          </div>
-
-          {/* ADD NEW CATEGORY */}
-          <div className="mb-3">
-            <label className="form-label fw-semibold">Add New Category</label>
-
-            <div className="d-flex gap-2">
+              {/* DESCRIPTION */}
+              <label className="form-label fw-semibold">Description</label>
               <input
                 type="text"
-                className="form-control form-control-lg rounded-3"
-                placeholder="Eg: Shopping"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-              />
-              <button
-                type="button"
-                className="btn btn-outline-primary btn-lg rounded-3"
-                onClick={addCategory}
-              >
-                Add
-              </button>
-            </div>
-          </div>
-
-          {/* EXPENSE TYPE */}
-          <div className="mb-4">
-            <label className="form-label fw-semibold">Expense Type</label>
-            <select
-              className="form-select form-select-lg rounded-3"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-            >
-              <option value="personal">Personal</option>
-              <option value="group">Group</option>
-            </select>
-          </div>
-
-          {/* GROUP SELECT */}
-          {type === "group" && (
-            <div className="mb-4">
-              <label className="form-label fw-semibold">Select Group</label>
-              <select
-                className="form-select form-select-lg rounded-3"
-                value={selectedGroup}
+                className="form-control rounded-3 mb-3"
+                value={description}
                 onChange={(e) => {
-                  setSelectedGroup(e.target.value);
-                  clearError("selectedGroup");
+                  setDescription(e.target.value);
+                  clearError("description");
+                }}
+              />
+              {errors.description && (
+                <p className="text-danger">{errors.description}</p>
+              )}
+
+              {/* CATEGORY */}
+              <label className="form-label fw-semibold">Category</label>
+              <select
+                className="form-select rounded-3 mb-2"
+                value={category}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  clearError("category");
                 }}
               >
-                <option value="">Choose a Group</option>
-                {groups.map((g, i) => (
-                  <option key={i} value={g}>
-                    {g}
+                <option value="">Select Category</option>
+                {categories.map((c, i) => (
+                  <option key={i} value={c}>
+                    {c}
                   </option>
                 ))}
               </select>
-              {errors.selectedGroup && (
-                <p className="text-danger mt-1">{errors.selectedGroup}</p>
+              {errors.category && (
+                <p className="text-danger">{errors.category}</p>
+              )}
+
+              {/* ADD NEW CATEGORY */}
+              <div className="d-flex gap-2 mb-4">
+                <input
+                  type="text"
+                  className="form-control rounded-3"
+                  placeholder="New Category"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-primary"
+                  onClick={addCategory}
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+
+            <div className="col-md-6">
+              {/* Expense Type */}
+              <label className="form-label fw-semibold">Expense Type</label>
+              <select
+                className="form-select rounded-3 mb-3"
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+              >
+                <option value="personal">Personal</option>
+                <option value="group">Group</option>
+              </select>
+
+              {/* GROUP SELECT */}
+              {type === "group" && (
+                <>
+                  <label className="form-label fw-semibold">Select Group</label>
+                  <select
+                    className="form-select rounded-3 mb-3"
+                    value={selectedGroup}
+                    onChange={(e) => {
+                      setSelectedGroup(e.target.value);
+                      clearError("selectedGroup");
+                    }}
+                  >
+                    <option value="">Choose Group</option>
+                    {groups.map((g) => (
+                      <option key={g.id} value={g.name}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {errors.selectedGroup && (
+                    <p className="text-danger mb-2">{errors.selectedGroup}</p>
+                  )}
+
+                  {/* SPLIT TYPE */}
+                  <label className="form-label fw-semibold">Split Type</label>
+                  <select
+                    className="form-select rounded-3 mb-3"
+                    value={selectedSplit}
+                    onChange={(e) => {
+                      setSelectedSplit(e.target.value);
+                      clearError("selectedSplit");
+                    }}
+                  >
+                    <option value="">Choose Split Type</option>
+                    <option value="equal">Equal Split</option>
+                    <option value="custom">Custom Split</option>
+                  </select>
+                  {errors.selectedSplit && (
+                    <p className="text-danger">{errors.selectedSplit}</p>
+                  )}
+                </>
+              )}
+
+              {/* Equal Split*/}
+              {selectedSplit === "equal" && equalSplitData.length > 0 && (
+                <div className="card p-3 mt-2">
+                  <h6 className="fw-bold text-primary mb-2">Equal Split</h6>
+                  {equalSplitData.map((item, i) => (
+                    <div
+                      key={i}
+                      className="d-flex justify-content-between py-1"
+                    >
+                      <span>{item.name}</span>
+                      <span>₹{item.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Custom Split */}
+              {selectedSplit === "custom" && customSplitData.length > 0 && (
+                <div className="card p-3 mt-2">
+                  <h6 className="fw-bold text-primary mb-3">Custom Split</h6>
+
+                  {customSplitData.map((item, i) => (
+                    <div
+                      key={i}
+                      className="d-flex justify-content-between align-items-center mb-2"
+                    >
+                      <span>{item.name}</span>
+                      <input
+                        type="number"
+                        className="form-control w-25"
+                        placeholder="Amount"
+                        value={item.amount}
+                        onChange={(e) => updateCustomAmount(i, e.target.value)}
+                      />
+                    </div>
+                  ))}
+
+                  {customError && (
+                    <p className="text-danger fw-bold mt-2">{customError}</p>
+                  )}
+                </div>
               )}
             </div>
-          )}
+          </div>
 
-          <button
-            className="btn btn-primary btn-lg w-auto rounded-3 shadow-sm fw-bold"
-            type="submit"
-          >
-            <i className="bi bi-check-circle me-2"></i>
-            Save Expense
-          </button>
+          <div className="text-end mt-4">
+            <button className="btn btn-primary btn-lg px-4" type="submit">
+              <i className="bi bi-check-circle me-2"></i>
+              Save Expense
+            </button>
+          </div>
         </form>
       </div>
     </div>
