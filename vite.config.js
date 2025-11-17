@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [
     react({
       babel: {
-        base: "/expense-tracker/",
         plugins: [["babel-plugin-react-compiler"]],
+        base: "/expense-tracker/",
       },
     }),
   ],
