@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
+import Joi from "joi";
 
 export default function CreateGroup() {
   const [groupName, setGroupName] = useState("");
   const [groups, setGroups] = useState([]);
   const [members, setMembers] = useState([]);
   const [newMember, setNewMember] = useState("");
-
+  const [error, setError] = useState("");
   useEffect(() => {
     setGroups(JSON.parse(localStorage.getItem("groupsList")) || []);
     setMembers(JSON.parse(localStorage.getItem("membersList")) || []);
@@ -27,13 +28,31 @@ export default function CreateGroup() {
   };
 
   const createGroup = () => {
-    if (!groupName.trim()) return alert("Enter group name!");
-    if (members.length === 0)
-      return alert("Add at least one member before creating a group!");
+    const { error } = schema.validate(
+      {
+        groupName,
+        members,
+      },
+      { abortEarly: false }
+    );
+
+    if (error) {
+      setError(error.details[0].message);
+      return;
+    }
+
+    const isDuplicate = groups.some(
+      (g) => g.name.toLowerCase() === groupName.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      setError("Group name already exists");
+      return;
+    }
 
     const newGroup = {
       id: Date.now(),
-      name: groupName,
+      name: groupName.trim(),
       members: [...members],
     };
 
@@ -46,6 +65,7 @@ export default function CreateGroup() {
     setGroupName("");
     setMembers([]);
     localStorage.removeItem("membersList");
+    setError("");
   };
 
   const deleteGroup = (id) => {
@@ -55,6 +75,36 @@ export default function CreateGroup() {
     setGroups(updated);
     localStorage.setItem("groupsList", JSON.stringify(updated));
   };
+
+  const schema = Joi.object({
+    groupName: Joi.string()
+      .trim()
+      .min(3)
+      .regex(/^[A-Za-z\s]+$/) // only letters & spaces
+      .required()
+      .label("Group Name")
+      .messages({
+        "string.empty": "Group name cannot be empty",
+        "string.min": "Group name must be at least 3 characters",
+        "string.pattern.base": "Group name should contain only letters",
+      }),
+    members: Joi.array()
+      .items(
+        Joi.string()
+          .trim()
+          .regex(/^[A-Za-z\s]+$/)
+          .messages({
+            "string.empty": "Member name cannot be empty",
+            "string.min": "Member name must be at least 3 letters",
+            "string.pattern.base": "Member name must contain only letters",
+          })
+      )
+      .min(2) // at least 2 members
+      .required()
+      .messages({
+        "array.min": "At least 2 members are required",
+      }),
+  });
 
   return (
     <div className="container mt-5">
@@ -77,7 +127,10 @@ export default function CreateGroup() {
               className="form-control rounded-3"
               placeholder="e.g., Family Trip"
               value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
+              onChange={(e) => {
+                setGroupName(e.target.value);
+                setError("");
+              }}
             />
           </div>
 
@@ -121,6 +174,7 @@ export default function CreateGroup() {
             <i className="bi bi-check-circle me-2"></i>Create Group
           </button>
         </div>
+        {error && <p className="text-danger fw-bold mt-2">{error}</p>}
       </div>
 
       <div className="card shadow-sm">
