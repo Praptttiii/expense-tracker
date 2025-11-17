@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Joi from "joi";
 
 export default function CreateGroup() {
+  const creator = "You";
   const [groupName, setGroupName] = useState("");
   const [groups, setGroups] = useState([]);
   const [members, setMembers] = useState([]);
@@ -50,10 +51,14 @@ export default function CreateGroup() {
       return;
     }
 
+    const finalMembers = members.includes(creator)
+      ? members
+      : [creator, ...members];
+
     const newGroup = {
       id: Date.now(),
-      name: groupName.trim(),
-      members: [...members],
+      name: groupName,
+      members: finalMembers,
     };
 
     const updatedGroups = [...groups, newGroup];
@@ -80,7 +85,7 @@ export default function CreateGroup() {
     groupName: Joi.string()
       .trim()
       .min(3)
-      .regex(/^[A-Za-z\s]+$/) // only letters & spaces
+      .regex(/^[A-Za-z\s]+$/)
       .required()
       .label("Group Name")
       .messages({
@@ -99,7 +104,7 @@ export default function CreateGroup() {
             "string.pattern.base": "Member name must contain only letters",
           })
       )
-      .min(2) // at least 2 members
+      .min(1)
       .required()
       .messages({
         "array.min": "At least 2 members are required",
