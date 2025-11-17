@@ -169,9 +169,7 @@ export default function AddExpense({ onSave }) {
               value={description}
               onChange={(e) => {
                 setDescription(e.target.value);
-                if (value.trim().length >= 3) {
-                  clearError("description");
-                }
+                clearError("description");
               }}
             />
             {errors.description && (
