@@ -45,9 +45,7 @@ export default function Summary() {
       selectedMonth === "" ? true : e.date.startsWith(selectedMonth);
 
     const matchSearch =
-      search === "" ||
-      e.description?.toLowerCase().includes(search.toLowerCase()) ||
-      e.category?.toLowerCase().includes(search.toLowerCase());
+      search === "" || e.category?.toLowerCase().includes(search.toLowerCase());
 
     return matchType && matchMonth && matchSearch;
   });
@@ -90,7 +88,7 @@ export default function Summary() {
             <input
               type="text"
               className="form-control"
-              placeholder="Search description or category..."
+              placeholder="Search category..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />

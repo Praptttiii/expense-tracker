@@ -8,15 +8,33 @@ export default function CreateGroup() {
   const [members, setMembers] = useState([]);
   const [newMember, setNewMember] = useState("");
   const [error, setError] = useState("");
+
   useEffect(() => {
     setGroups(JSON.parse(localStorage.getItem("groupsList")) || []);
     setMembers(JSON.parse(localStorage.getItem("membersList")) || []);
   }, []);
 
+  //  Add multiple members with comma + prevent duplicates + cannot add creator manually
   const addMember = () => {
     if (!newMember.trim()) return;
 
-    const updated = [...members, newMember];
+    const incoming = newMember
+      .split(",")
+      .map((m) => m.trim())
+      .filter((m) => m !== "");
+
+    if (incoming.length === 0) return;
+
+    const filtered = incoming.filter(
+      (m) => !members.includes(m) && m.toLowerCase() !== creator.toLowerCase() // prevent duplicates of 'You'
+    );
+
+    if (filtered.length === 0) {
+      setNewMember("");
+      return;
+    }
+
+    const updated = [...members, ...filtered];
     setMembers(updated);
     localStorage.setItem("membersList", JSON.stringify(updated));
     setNewMember("");
@@ -100,7 +118,6 @@ export default function CreateGroup() {
           .regex(/^[A-Za-z\s]+$/)
           .messages({
             "string.empty": "Member name cannot be empty",
-            "string.min": "Member name must be at least 3 letters",
             "string.pattern.base": "Member name must contain only letters",
           })
       )
@@ -158,6 +175,7 @@ export default function CreateGroup() {
               ))}
             </div>
           </div>
+
           <h4 className="fw-bold mb-3">
             <i className="bi bi-person-plus-fill me-2"></i>Manage Users
           </h4>
@@ -166,7 +184,7 @@ export default function CreateGroup() {
             <input
               type="text"
               className="form-control rounded-3 me-2"
-              placeholder="Add user name"
+              placeholder="Add user name (comma separated)"
               value={newMember}
               onChange={(e) => setNewMember(e.target.value)}
             />
