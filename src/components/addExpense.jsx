@@ -202,6 +202,7 @@ export default function AddExpense({ onSave }) {
       category,
       type,
       group: type === "group" ? selectedGroup : null,
+      groupId: type === "group" ? "G_" + Date.now() : null,
       groupMembers: type === "group" ? members : null,
       splitType: type === "group" ? selectedSplit : null,
       splitAmounts: type === "group" ? splitAmounts : null,
@@ -228,19 +229,18 @@ export default function AddExpense({ onSave }) {
 
   return (
     <div className="container mt-5">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="fw-bold text-primary mb-0">
+          <i className="bi bi-receipt-cutoff me-2"></i>Add Expense
+        </h2>
+        <button
+          className="btn btn-outline-primary"
+          onClick={() => navigate("/")}
+        >
+          <i className="bi bi-arrow-left-circle me-2"></i>Back
+        </button>
+      </div>
       <div className="card shadow-lg rounded-4 p-4">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2 className="fw-bold text-primary mb-0">
-            <i className="bi bi-receipt-cutoff me-2"></i>Add Expense
-          </h2>
-          <button
-            className="btn btn-outline-primary"
-            onClick={() => navigate("/")}
-          >
-            <i className="bi bi-arrow-left-circle me-2"></i>Back
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit}>
           <div className="row g-4">
             <div className="col-md-6">
