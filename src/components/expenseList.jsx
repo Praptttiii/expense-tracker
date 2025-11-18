@@ -74,7 +74,6 @@ export default function ExpenseList() {
     const data = JSON.parse(localStorage.getItem("expenses")) || [];
     setExpenses(data);
   };
-  console.log("LAST ADDED:", filteredData[filteredData.length - 1]);
 
   return (
     <div className="container mt-5">
@@ -181,6 +180,9 @@ export default function ExpenseList() {
                         <i className="bi bi-trash"></i>
                       </button>
 
+                      <p className="mb-1">
+                        <strong>Date:</strong> {item.date}
+                      </p>
                       <p className="mb-1">
                         <strong>Group Name:</strong> {item.group}
                       </p>
