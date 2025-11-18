@@ -26,7 +26,14 @@ export default function ExpenseList() {
 
   const columns = [
     { name: "Date", selector: (row) => row.date, sortable: true },
-    { name: "Description", selector: (row) => row.description, sortable: true },
+    {
+      name: "Description",
+      selector: (row) =>
+        row.description && row.description.trim() !== ""
+          ? row.description
+          : "-",
+      sortable: true,
+    },
     { name: "Category", selector: (row) => row.category, sortable: true },
     { name: "Amount (₹)", selector: (row) => row.amount, sortable: true },
     { name: "Type", selector: (row) => row.type, sortable: true },
@@ -67,6 +74,7 @@ export default function ExpenseList() {
     const data = JSON.parse(localStorage.getItem("expenses")) || [];
     setExpenses(data);
   };
+  console.log("LAST ADDED:", filteredData[filteredData.length - 1]);
 
   return (
     <div className="container mt-5">
@@ -130,18 +138,98 @@ export default function ExpenseList() {
             </div>
           </div>
 
-          {/* DataTable */}
-          <div className="shadow-sm rounded-4 border table-responsive p-2">
-            <DataTable
-              columns={columns}
-              data={filteredData}
-              pagination
-              paginationPerPage={5}
-              paginationRowsPerPageOptions={[5, 10, 15]}
-              highlightOnHover
-              striped
-            />
-          </div>
+          {
+            // PERSONAL
+            filteredData.some((e) => e.type === "personal") && (
+              <div className="shadow-sm rounded-4 border table-responsive p-2">
+                <h3 className="fw-bold d-flex align-items-center">
+                  Personal Expenses
+                </h3>
+                <DataTable
+                  columns={columns}
+                  data={filteredData.filter((e) => e.type === "personal")}
+                  pagination
+                  paginationPerPage={5}
+                  paginationRowsPerPageOptions={[5, 10, 15]}
+                  highlightOnHover
+                  striped
+                />
+              </div>
+            )
+          }
+
+          {
+            // GROUP
+            filteredData.some((e) => e.type === "group") && (
+              <div className="mt-3">
+                <h3 className="fw-bold d-flex align-items-center">
+                  Group Expenses
+                </h3>
+                {filteredData
+                  .filter((e) => e.type === "group")
+                  .map((item, index) => (
+                    <div
+                      key={index}
+                      className="border rounded-4 p-3 mb-3 shadow-sm bg-light position-relative"
+                    >
+                      {/* DELETE BUTTON */}
+                      <button
+                        className="btn btn-sm btn-danger rounded-circle position-absolute"
+                        style={{ top: "10px", right: "10px" }}
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        <i className="bi bi-trash"></i>
+                      </button>
+
+                      <p className="mb-1">
+                        <strong>Group Name:</strong> {item.group}
+                      </p>
+
+                      <p className="mb-1">
+                        <strong>Members:</strong>{" "}
+                        {item.groupMembers?.length
+                          ? item.groupMembers.join(", ")
+                          : "No members"}
+                      </p>
+
+                      <p className="mb-1">
+                        <strong>Description:</strong> {item.description}
+                      </p>
+
+                      <p className="mb-1">
+                        <strong>Category:</strong> {item.category}
+                      </p>
+
+                      <p className="mb-1">
+                        <strong>Total Amount:</strong> ₹{item.amount}
+                      </p>
+
+                      <p className="mb-1">
+                        <strong>Split Type:</strong> {item.splitType || "—"}
+                      </p>
+
+                      <div className="mt-2">
+                        <strong>Split Amounts:</strong>
+                        <ul className="mt-1">
+                          {item.splitAmounts &&
+                          Object.keys(item.splitAmounts).length > 0 ? (
+                            Object.entries(item.splitAmounts).map(
+                              ([name, amt], i) => (
+                                <li key={i}>
+                                  {name}: ₹{amt}
+                                </li>
+                              )
+                            )
+                          ) : (
+                            <li>No split data</li>
+                          )}
+                        </ul>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )
+          }
         </>
       )}
     </div>

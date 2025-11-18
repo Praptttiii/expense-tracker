@@ -5,15 +5,19 @@ import Joi from "joi";
 export default function AddExpense({ onSave }) {
   const navigate = useNavigate();
 
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState(
+    localStorage.getItem("lastCategory") || ""
+  );
   const [type, setType] = useState("personal");
   const [newCategory, setNewCategory] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
-  const [errors, setErrors] = useState({});
   const [selectedSplit, setSelectedSplit] = useState("");
+  const [errors, setErrors] = useState({});
+  const [customError, setCustomError] = useState("");
+
   const [categories, setCategories] = useState(
     JSON.parse(localStorage.getItem("categories")) || [
       "Food",
@@ -21,18 +25,19 @@ export default function AddExpense({ onSave }) {
       "Travel",
     ]
   );
-  const [equalSplitData, setEqualSplitData] = useState([]);
-  const [customSplitData, setCustomSplitData] = useState([]);
+
   const [groups] = useState(
     JSON.parse(localStorage.getItem("groupsList")) || []
   );
-  const [customError, setCustomError] = useState("");
+
+  const [equalSplitData, setEqualSplitData] = useState([]);
+  const [customSplitData, setCustomSplitData] = useState([]);
 
   // JOI VALIDATION SCHEMA
   const schema = Joi.object({
     date: Joi.date().iso().max("now").required().label("Date"),
     amount: Joi.number().min(1).required().label("Amount"),
-    description: Joi.string().min(3).required().label("Description"),
+    description: Joi.string().min(3).allow("").label("Description"),
     category: Joi.string().min(3).required().label("Category"),
     type: Joi.string().required(),
     selectedGroup: Joi.string().when("type", {
@@ -47,6 +52,7 @@ export default function AddExpense({ onSave }) {
     }),
   });
 
+  // VALIDATION
   const validateField = () => {
     const formData = {
       date,
@@ -69,11 +75,63 @@ export default function AddExpense({ onSave }) {
     result.error.details.forEach((err) => {
       newErrors[err.path[0]] = err.message;
     });
-
     setErrors(newErrors);
     return false;
   };
 
+  // HELPERS
+  const getGroupMembers = () => {
+    if (type !== "group") return [];
+    return groups.find((g) => g.name === selectedGroup)?.members || [];
+  };
+
+  const calculateEqualSplit = (members) => {
+    const split = Number(amount) / members.length;
+    return members.map((m) => ({ name: m, amount: split.toFixed(2) }));
+  };
+
+  const calculateCustomSplit = (members) => {
+    return members.map((m) => ({ name: m, amount: "" }));
+  };
+
+  const getSplitAmounts = (members) => {
+    if (selectedSplit === "equal") {
+      const result = {};
+      members.forEach((m) => (result[m] = Number(amount) / members.length));
+      return result;
+    }
+
+    if (selectedSplit === "custom") {
+      const result = {};
+      customSplitData.forEach((item) => {
+        result[item.name] = Number(item.amount || 0);
+      });
+      return result;
+    }
+
+    return null;
+  };
+
+  const validateCustomSplitAmount = () => {
+    if (selectedSplit !== "custom") return true;
+
+    const totalCustom = customSplitData.reduce(
+      (sum, item) => sum + Number(item.amount || 0),
+      0
+    );
+
+    if (totalCustom !== Number(amount)) {
+      alert("Total split amount must match the total amount.");
+      return false;
+    }
+    return true;
+  };
+
+  const clearError = (field) => {
+    setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  // CATEGORY ADD
   const addCategory = () => {
     if (!newCategory.trim()) return;
     const updated = [...categories, newCategory];
@@ -83,22 +141,58 @@ export default function AddExpense({ onSave }) {
     setNewCategory("");
   };
 
+  // SPLIT CALCULATIONS
+  useEffect(() => {
+    if (type !== "group" || !selectedGroup || !amount) {
+      setEqualSplitData([]);
+      setCustomSplitData([]);
+      return;
+    }
+
+    const members = getGroupMembers();
+    if (members.length === 0) return;
+
+    if (selectedSplit === "equal") {
+      setEqualSplitData(calculateEqualSplit(members));
+      setCustomSplitData([]);
+    }
+
+    if (selectedSplit === "custom") {
+      setCustomSplitData(calculateCustomSplit(members));
+      setEqualSplitData([]);
+    }
+  }, [type, selectedGroup, selectedSplit, amount]);
+
+  const updateCustomAmount = (i, value) => {
+    const updated = [...customSplitData];
+    updated[i].amount = value;
+    setCustomSplitData(updated);
+
+    const totalCustom = updated.reduce(
+      (sum, item) => sum + Number(item.amount || 0),
+      0
+    );
+
+    if (totalCustom > Number(amount)) {
+      setCustomError("Custom total exceeds entered amount.");
+    } else if (totalCustom < Number(amount)) {
+      setCustomError(
+        `Remaining: ₹${(Number(amount) - totalCustom).toFixed(2)}`
+      );
+    } else {
+      setCustomError("");
+    }
+  };
+
+  // SUBMIT
   const handleSubmit = (e) => {
     e.preventDefault();
 
     if (!validateField()) return;
+    if (!validateCustomSplitAmount()) return;
 
-    if (type === "group" && selectedSplit === "custom") {
-      const totalCustomAmount = customSplitData.reduce(
-        (sum, item) => sum + Number(item.amount || 0),
-        0
-      );
-
-      if (totalCustomAmount !== Number(amount)) {
-        alert("Total split amount must be equal to the main amount.");
-        return;
-      }
-    }
+    const members = getGroupMembers();
+    const splitAmounts = getSplitAmounts(members);
 
     const expense = {
       id: "R_" + Date.now(),
@@ -108,6 +202,9 @@ export default function AddExpense({ onSave }) {
       category,
       type,
       group: type === "group" ? selectedGroup : null,
+      groupMembers: type === "group" ? members : null,
+      splitType: type === "group" ? selectedSplit : null,
+      splitAmounts: type === "group" ? splitAmounts : null,
     };
 
     const existing = JSON.parse(localStorage.getItem("expenses")) || [];
@@ -115,92 +212,18 @@ export default function AddExpense({ onSave }) {
     localStorage.setItem("expenses", JSON.stringify(existing));
 
     // Reset Form
-    setDate("");
+    setDate(new Date().toISOString().split("T")[0]);
     setAmount("");
     setDescription("");
-    setCategory("");
     setType("personal");
-    setNewCategory("");
     setSelectedGroup("");
     setSelectedSplit("");
-    setEqualSplitData("");
-    setCustomSplitData("");
+    setNewCategory("");
+    setEqualSplitData([]);
+    setCustomSplitData([]);
+
     alert("Expense Added!");
     onSave();
-  };
-
-  const clearError = (field) => {
-    setErrors((prev) => ({ ...prev, [field]: "" }));
-  };
-
-  useEffect(() => {
-    if (type !== "group" || !selectedGroup) {
-      setEqualSplitData([]);
-      setCustomSplitData([]);
-      return;
-    }
-
-    const groupObj = groups.find((g) => g.name === selectedGroup);
-    if (!groupObj) return;
-
-    const members = groupObj.members || [];
-
-    if (!amount || Number(amount) <= 0) {
-      setEqualSplitData([]);
-      setCustomSplitData([]);
-      return;
-    }
-
-    // Equal Split
-    if (selectedSplit === "equal" && amount) {
-      const splitAmount = Number(amount) / members.length;
-
-      const equalData = members.map((m) => ({
-        name: m,
-        amount: splitAmount.toFixed(2),
-      }));
-
-      setEqualSplitData(equalData);
-      setCustomSplitData([]);
-    }
-
-    // Custom Split
-    if (selectedSplit === "custom") {
-      const customData = members.map((m) => ({
-        name: m,
-        amount: "",
-      }));
-
-      setCustomSplitData(customData);
-      setEqualSplitData([]);
-    }
-  }, [type, selectedGroup, selectedSplit, amount]);
-
-  const updateCustomAmount = (index, value) => {
-    const updated = [...customSplitData];
-    updated[index].amount = value;
-    setCustomSplitData(updated);
-    validateCustomSplit(updated);
-  };
-
-  const validateCustomSplit = (data) => {
-    const totalEntered = Number(amount);
-    const totalCustom = data.reduce(
-      (sum, item) => sum + Number(item.amount || 0),
-      0
-    );
-
-    if (totalCustom > totalEntered) {
-      setCustomError("Custom split total cannot exceed the entered amount.");
-    } else if (totalCustom < totalEntered) {
-      setCustomError(
-        `You need to assign ₹${(totalEntered - totalCustom).toFixed(
-          2
-        )} more to match the total amount.`
-      );
-    } else {
-      setCustomError(""); // valid
-    }
   };
 
   return (
@@ -269,6 +292,7 @@ export default function AddExpense({ onSave }) {
                 value={category}
                 onChange={(e) => {
                   setCategory(e.target.value);
+                  localStorage.setItem("lastCategory", e.target.value);
                   clearError("category");
                 }}
               >
