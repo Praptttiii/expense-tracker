@@ -4,7 +4,7 @@ import Joi from "joi";
 
 export default function AddExpense({ onSave }) {
   const navigate = useNavigate();
-
+  const [error, setError] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
@@ -51,6 +51,22 @@ export default function AddExpense({ onSave }) {
       otherwise: Joi.string().allow(""),
     }),
   });
+
+  const categorySchema = Joi.string().min(3).max(20).required().messages({
+    "string.empty": "Category name is required",
+    "string.min": "Category must be at least 3 characters",
+    "string.max": "Category must be less than 20 characters",
+  });
+
+  const validateCategory = () => {
+    const result = categorySchema.validate(newCategory);
+    if (result.error) {
+      setError(result.error.details[0].message);
+      return false;
+    }
+    setError("");
+    return true;
+  };
 
   // VALIDATION
   const validateField = () => {
@@ -133,7 +149,7 @@ export default function AddExpense({ onSave }) {
 
   // CATEGORY ADD
   const addCategory = () => {
-    if (!newCategory.trim()) return;
+    if (!validateCategory()) return;
     const updated = [...categories, newCategory];
     setCategories(updated);
     localStorage.setItem("categories", JSON.stringify(updated));
@@ -324,6 +340,7 @@ export default function AddExpense({ onSave }) {
                   Add
                 </button>
               </div>
+              {error && <small className="text-danger">{error}</small>}
             </div>
 
             <div className="col-md-6">
