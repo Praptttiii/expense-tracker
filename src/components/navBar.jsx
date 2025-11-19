@@ -60,7 +60,15 @@ export default function Navbar() {
                 Create Group
               </Link>
             </li>
-
+            <li className="nav-item">
+              <Link
+                className="nav-link text-white"
+                to="/category-list"
+                onClick={closeMenu}
+              >
+                Category List
+              </Link>
+            </li>
             <li className="nav-item">
               <Link
                 className="nav-link text-white"

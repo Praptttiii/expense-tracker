@@ -6,6 +6,7 @@ import AddExpense from "./components/addExpense";
 import ExpenseList from "./components/expenseList";
 import CreateGroup from "./components/createGroup";
 import Summary from "./components/summary";
+import CategoryList from "./components/categoryList";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/expenses" element={<ExpenseList />} />
         <Route path="/create-group" element={<CreateGroup />} />
         <Route path="/monthly-summary" element={<Summary />} />
+        <Route path="/category-list" element={<CategoryList />} />
       </Routes>
     </HashRouter>
   );

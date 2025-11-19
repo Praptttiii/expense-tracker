@@ -3,9 +3,8 @@ import { useNavigate } from "react-router-dom";
 import DataTable from "react-data-table-component";
 
 export default function ExpenseList() {
-  const [expenses, setExpenses] = useState([]);
   const navigate = useNavigate();
-
+  const [expenses, setExpenses] = useState([]);
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -214,7 +213,7 @@ export default function ExpenseList() {
                         <strong>Split Amounts:</strong>
                         <ul className="mt-1">
                           {item.splitAmounts &&
-                          Object.keys(item.splitAmounts).length > 0 ? (
+                          Object.keys(item.splitAmounts).length > 0 ? ( //object.entries in used to convert object into array after converting it into array we can use map to iterate
                             Object.entries(item.splitAmounts).map(
                               ([name, amt], i) => (
                                 <li key={i}>
