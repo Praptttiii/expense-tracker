@@ -11,8 +11,8 @@ export default function Navbar() {
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
       <div className="container-fluid px-2">
-        <Link to="/">
-          <a className="navbar-brand fw-bold fs-4 px-3">💸 Expense Tracker</a>
+        <Link to="/" className="navbar-brand fw-bold fs-4 px-3">
+          💸 Expense Tracker
         </Link>
         <button
           className="navbar-toggler"
