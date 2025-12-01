@@ -14,7 +14,8 @@ export default function Navbar() {
   };
 
   const handleLogout = () => {
-    window.confirm("are you sure you want to logout");
+    const confirmLogout = window.confirm("Are you sure you want to logout?");
+    if (!confirmLogout) return;
     logout();
     navigate("/login");
   };

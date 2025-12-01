@@ -227,19 +227,8 @@ export default function AddExpense({ onSave }) {
     const existing = JSON.parse(localStorage.getItem("expenses")) || [];
     existing.push(expense);
     localStorage.setItem("expenses", JSON.stringify(existing));
+    navigate("/expenses");
 
-    // Reset Form
-    setDate(new Date().toISOString().split("T")[0]);
-    setAmount("");
-    setDescription("");
-    setType("personal");
-    setSelectedGroup("");
-    setSelectedSplit("");
-    setNewCategory("");
-    setEqualSplitData([]);
-    setCustomSplitData([]);
-
-    alert("Expense Added!");
     onSave();
   };
 
