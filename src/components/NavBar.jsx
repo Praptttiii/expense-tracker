@@ -1,12 +1,21 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
+import { useContext, useNavigate } from "react";
 
 export default function Navbar() {
+  const { logout } = useContext(AuthContext);
+
   const closeMenu = () => {
     const navbarCollapse = document.getElementById("navbarContent");
     if (navbarCollapse.classList.contains("show")) {
       new window.bootstrap.Collapse(navbarCollapse).hide();
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
   };
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
@@ -76,6 +85,15 @@ export default function Navbar() {
                 onClick={closeMenu}
               >
                 Summary
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link
+                className="nav-link text-white"
+                to="/Login"
+                onClick={handleLogout}
+              >
+                Logout
               </Link>
             </li>
           </ul>
