@@ -14,6 +14,7 @@ export default function Navbar() {
   };
 
   const handleLogout = () => {
+    window.confirm("are you sure you want to logout");
     logout();
     navigate("/login");
   };
@@ -87,14 +88,15 @@ export default function Navbar() {
                 Summary
               </Link>
             </li>
+          </ul>
+          <ul className="navbar-nav ms-auto">
             <li className="nav-item">
-              <Link
-                className="nav-link text-white"
-                to="/Login"
+              <button
+                className="btn btn-outline-light px-3 logout-btn"
                 onClick={handleLogout}
               >
                 Logout
-              </Link>
+              </button>
             </li>
           </ul>
         </div>
