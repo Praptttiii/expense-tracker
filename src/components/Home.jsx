@@ -40,7 +40,14 @@ export default function Home() {
             style={{ transition: "0.3s" }}
           >
             <i className="bi bi-pencil-square fs-1 text-primary mb-3"></i>
-            <h4 className="fw-bold">Easy Expense Tracking</h4>
+            <h4 className="fw-bold">
+              <Link
+                to="/expenses"
+                className="fw-bold text-decoration-none text-dark"
+              >
+                Easy Expense Tracking
+              </Link>
+            </h4>
             <p className="text-muted">
               Add expenses in seconds with our simple and clean interface.
             </p>
@@ -53,7 +60,14 @@ export default function Home() {
             style={{ transition: "0.3s" }}
           >
             <i className="bi bi-bar-chart-line fs-1 text-primary mb-3"></i>
-            <h4 className="fw-bold">Smart Summary</h4>
+            <h4 className="fw-bold">
+              <Link
+                to="/Graph"
+                className="fw-bold text-decoration-none text-dark"
+              >
+                Smart Summary
+              </Link>
+            </h4>
             <p className="text-muted">
               Get monthly reports and insights to understand your spending
               better.
@@ -61,13 +75,20 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="col-md-4">
+        <div className="col-md-4 ">
           <div
             className="p-4 rounded-4 shadow-sm h-100 bg-white border"
             style={{ transition: "0.3s" }}
           >
             <i className="bi bi-people-fill fs-1 text-primary mb-3"></i>
-            <h4 className="fw-bold">Group Management</h4>
+            <h4 className="fw-bold">
+              <Link
+                to="/create-group"
+                className="fw-bold text-decoration-none text-dark"
+              >
+                Group Management
+              </Link>
+            </h4>
             <p className="text-muted">
               Split bills and track group expenses effortlessly with friends or
               family.
