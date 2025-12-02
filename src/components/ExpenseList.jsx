@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DataTable from "react-data-table-component";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function ExpenseList() {
   const navigate = useNavigate();
@@ -13,6 +15,61 @@ export default function ExpenseList() {
     const data = JSON.parse(localStorage.getItem("expenses")) || [];
     setExpenses(data);
   }, []);
+
+  const exportToPDF = (type) => {
+    const doc = new jsPDF();
+
+    const isPersonal = type === "personal";
+
+    const title = isPersonal
+      ? "Personal Expense Report"
+      : "Group Expense Report";
+
+    doc.text(title, 14, 10);
+
+    // Table setup for Personal vs Group
+    const tableColumn = isPersonal
+      ? ["No.", "Amount", "Category", "Date"]
+      : [
+          "No.",
+          "Date",
+          "Group Name",
+          "Category",
+          "Total Amount",
+          "Split Type",
+          "Your Share",
+        ];
+
+    const tableRows = [];
+
+    const filteredExpenses = filteredData.filter((e) => e.type === type);
+
+    filteredExpenses.forEach((e, index) => {
+      const row = isPersonal
+        ? [index + 1, e.amount, e.category, e.date]
+        : [
+            index + 1,
+            e.date,
+            e.group,
+            e.category,
+            e.amount,
+            e.splitType,
+            e.splitAmounts["You"],
+          ];
+
+      tableRows.push(row);
+    });
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 20,
+    });
+
+    doc.save(
+      isPersonal ? "personal-expense-report.pdf" : "group-expense-report.pdf"
+    );
+  };
 
   const handleDelete = (id) => {
     if (!window.confirm("Are you sure you want to delete this expense?"))
@@ -140,9 +197,16 @@ export default function ExpenseList() {
             // PERSONAL
             filteredData.some((e) => e.type === "personal") && (
               <div className="shadow-sm rounded-4 border table-responsive p-2">
-                <h3 className="fw-bold d-flex align-items-center">
-                  Personal Expenses
-                </h3>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h3 className="fw-bold m-0">Personal Expenses</h3>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => exportToPDF("personal")}
+                  >
+                    Export Personal PDF
+                  </button>
+                </div>
+
                 <DataTable
                   columns={columns}
                   data={filteredData.filter((e) => e.type === "personal")}
@@ -160,9 +224,15 @@ export default function ExpenseList() {
             // GROUP
             filteredData.some((e) => e.type === "group") && (
               <div className="mt-3">
-                <h3 className="fw-bold d-flex align-items-center">
-                  Group Expenses
-                </h3>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h3 className="fw-bold m-0">Group Expenses</h3>
+                  <button
+                    className="btn btn-success"
+                    onClick={() => exportToPDF("group")}
+                  >
+                    Export Group PDF
+                  </button>
+                </div>
                 {filteredData
                   .filter((e) => e.type === "group")
                   .map((item, index) => (
