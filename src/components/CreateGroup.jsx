@@ -8,29 +8,49 @@ export default function CreateGroup() {
   const [members, setMembers] = useState([]);
   const [newMember, setNewMember] = useState("");
   const [error, setError] = useState("");
+  const [selectedUser, setSelectedUser] = useState("");
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
     setGroups(JSON.parse(localStorage.getItem("groupsList")) || []);
     setMembers(JSON.parse(localStorage.getItem("membersList")) || []);
+
+    fetch("https://dummyjson.com/users?limit=10")
+      .then((res) => res.json())
+      .then((data) => {
+        const mappedUsers = data.users.map((user) => ({
+          id: user.id,
+          name: `${user.firstName} ${user.lastName}`,
+        }));
+        setUsers(mappedUsers);
+      })
+      .catch((err) => console.log("Error fetching users:", err));
   }, []);
 
   //  Add multiple members with comma + prevent duplicates + cannot add creator manually
   const addMember = () => {
-    if (!newMember.trim()) return;
+    let inputMembers = [];
 
-    const incoming = newMember
-      .split(",")
-      .map((m) => m.trim())
-      .filter((m) => m !== "");
+    if (newMember.trim()) {
+      inputMembers = newMember
+        .split(",")
+        .map((m) => m.trim())
+        .filter((m) => m !== "");
+    }
 
-    if (incoming.length === 0) return;
+    if (selectedUser && !inputMembers.includes(selectedUser)) {
+      inputMembers.push(selectedUser);
+    }
 
-    const filtered = incoming.filter(
-      (m) => !members.includes(m) && m.toLowerCase() !== creator.toLowerCase() // prevent duplicates of 'You'
+    if (inputMembers.length === 0) return;
+
+    const filtered = inputMembers.filter(
+      (m) => !members.includes(m) && m.toLowerCase() !== creator.toLowerCase()
     );
 
     if (filtered.length === 0) {
       setNewMember("");
+      setSelectedUser("");
       return;
     }
 
@@ -38,6 +58,7 @@ export default function CreateGroup() {
     setMembers(updated);
     localStorage.setItem("membersList", JSON.stringify(updated));
     setNewMember("");
+    setSelectedUser("");
   };
 
   const deleteMember = (name) => {
@@ -173,6 +194,44 @@ export default function CreateGroup() {
                   ></i>
                 </span>
               ))}
+            </div>
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label fw-semibold">Select Members</label>
+
+            <div className="dropdown">
+              <button
+                className="btn btn-outline-primary dropdown-toggle w-100 text-start"
+                type="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                Select members
+              </button>
+
+              <ul className="dropdown-menu p-2" style={{ width: "100%" }}>
+                {users.map((user) => (
+                  <li
+                    key={user.id}
+                    className="dropdown-item d-flex align-items-center"
+                  >
+                    <input
+                      type="checkbox"
+                      className="form-check-input me-2"
+                      checked={members.includes(user.name)}
+                      onChange={() => {
+                        if (members.includes(user.name)) {
+                          setMembers(members.filter((m) => m !== user.name));
+                        } else {
+                          setMembers([...members, user.name]);
+                        }
+                      }}
+                    />
+                    <label className="form-check-label">{user.name}</label>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
 
