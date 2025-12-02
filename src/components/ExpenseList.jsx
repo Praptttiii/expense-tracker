@@ -16,59 +16,80 @@ export default function ExpenseList() {
     setExpenses(data);
   }, []);
 
-  const exportToPDF = (type) => {
+  const exportToPDF = (mode) => {
     const doc = new jsPDF();
 
-    const isPersonal = type === "personal";
+    const addSection = (type) => {
+      const isPersonal = type === "personal";
+      const title = isPersonal
+        ? "Personal Expense Report"
+        : "Group Expense Report";
 
-    const title = isPersonal
-      ? "Personal Expense Report"
-      : "Group Expense Report";
-
-    doc.text(title, 14, 10);
-
-    // Table setup for Personal vs Group
-    const tableColumn = isPersonal
-      ? ["No.", "Amount", "Category", "Date"]
-      : [
-          "No.",
-          "Date",
-          "Group Name",
-          "Category",
-          "Total Amount",
-          "Split Type",
-          "Your Share",
-        ];
-
-    const tableRows = [];
-
-    const filteredExpenses = filteredData.filter((e) => e.type === type);
-
-    filteredExpenses.forEach((e, index) => {
-      const row = isPersonal
-        ? [index + 1, e.amount, e.category, e.date]
+      const tableColumn = isPersonal
+        ? ["No.", "Amount", "Category", "Date"]
         : [
-            index + 1,
-            e.date,
-            e.group,
-            e.category,
-            e.amount,
-            e.splitType,
-            e.splitAmounts["You"],
+            "No.",
+            "Date",
+            "Group Name",
+            "Category",
+            "Total Amount",
+            "Split Type",
+            "Your Share",
           ];
 
-      tableRows.push(row);
-    });
+      const tableRows = [];
 
-    autoTable(doc, {
-      head: [tableColumn],
-      body: tableRows,
-      startY: 20,
-    });
+      const sectionData = filteredData.filter((e) => e.type === type);
 
-    doc.save(
-      isPersonal ? "personal-expense-report.pdf" : "group-expense-report.pdf"
-    );
+      if (sectionData.length === 0) return; // nothing to add
+
+      sectionData.forEach((e, index) => {
+        const row = isPersonal
+          ? [index + 1, e.amount, e.category, e.date]
+          : [
+              index + 1,
+              e.date,
+              e.group,
+              e.category,
+              e.amount,
+              e.splitType,
+              e.splitAmounts?.["You"] || "—",
+            ];
+
+        tableRows.push(row);
+      });
+
+      // Position this section below the previous table (if any)
+      const startY = doc.lastAutoTable
+        ? doc.lastAutoTable.finalY + 10 // below previous table
+        : 20;
+
+      doc.setFontSize(14);
+      doc.text(title, 14, startY - 5);
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY,
+      });
+    };
+
+    // Decide what to export based on mode
+    if (mode === "personal" || mode === "group") {
+      addSection(mode);
+    } else if (mode === "both") {
+      addSection("personal");
+      addSection("group");
+    }
+
+    const fileName =
+      mode === "personal"
+        ? "personal-expense-report.pdf"
+        : mode === "group"
+        ? "group-expense-report.pdf"
+        : "all-expense-report.pdf";
+
+    doc.save(fileName);
   };
 
   const handleDelete = (id) => {
@@ -139,12 +160,63 @@ export default function ExpenseList() {
           Expense List
         </h2>
 
-        <button
-          className="btn btn-outline-primary"
-          onClick={() => navigate("/")}
-        >
-          <i className="bi bi-arrow-left-circle me-2"></i>Back
-        </button>
+        <div className="d-flex align-items-center gap-3">
+          {/* Export Dropdown */}
+          {filteredData.length > 0 && (
+            <div className="dropdown">
+              <button
+                className="btn btn-primary dropdown-toggle d-flex align-items-center gap-2"
+                type="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                <i className="bi bi-file-earmark-arrow-down"></i>
+                Export PDF
+              </button>
+
+              <ul className="dropdown-menu shadow-sm">
+                <li>
+                  <button
+                    className="dropdown-item d-flex align-items-center gap-2"
+                    onClick={() => exportToPDF("both")}
+                  >
+                    <i className="bi bi-files"></i>
+                    Export All (Filtered)
+                  </button>
+                </li>
+
+                <li>
+                  <button
+                    className="dropdown-item d-flex align-items-center gap-2"
+                    onClick={() => exportToPDF("personal")}
+                  >
+                    <i className="bi bi-person-lines-fill text-primary"></i>
+                    Export Personal Only
+                  </button>
+                </li>
+
+                <li>
+                  <button
+                    className="dropdown-item d-flex align-items-center gap-2"
+                    onClick={() => exportToPDF("group")}
+                  >
+                    <i className="bi bi-people-fill text-success"></i>
+                    Export Group Only
+                  </button>
+                </li>
+              </ul>
+            </div>
+          )}
+
+          {/* Back Button */}
+          <button
+            className="btn btn-outline-primary d-flex align-items-center gap-2"
+            onClick={() => navigate("/")}
+          >
+            <i className="bi bi-arrow-left-circle"></i>
+            Back
+          </button>
+        </div>
       </div>
 
       {expenses.length > 0 && (
@@ -199,12 +271,6 @@ export default function ExpenseList() {
               <div className="shadow-sm rounded-4 border table-responsive p-2">
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <h3 className="fw-bold m-0">Personal Expenses</h3>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => exportToPDF("personal")}
-                  >
-                    Export Personal PDF
-                  </button>
                 </div>
 
                 <DataTable
@@ -226,12 +292,6 @@ export default function ExpenseList() {
               <div className="mt-3">
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <h3 className="fw-bold m-0">Group Expenses</h3>
-                  <button
-                    className="btn btn-success"
-                    onClick={() => exportToPDF("group")}
-                  >
-                    Export Group PDF
-                  </button>
                 </div>
                 {filteredData
                   .filter((e) => e.type === "group")
