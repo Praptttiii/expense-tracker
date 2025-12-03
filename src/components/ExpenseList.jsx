@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DataTable from "react-data-table-component";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 export default function ExpenseList() {
   const navigate = useNavigate();
@@ -15,6 +16,68 @@ export default function ExpenseList() {
     const data = JSON.parse(localStorage.getItem("expenses")) || [];
     setExpenses(data);
   }, []);
+
+  const exportToExcel = (mode) => {
+    const workbook = XLSX.utils.book_new();
+
+    const addSheet = (type, sheetName) => {
+      const isPersonal = type === "personal";
+
+      const headers = isPersonal
+        ? ["No.", "Amount", "Category", "Date"]
+        : [
+            "No.",
+            "Date",
+            "Group Name",
+            "Category",
+            "Total Amount",
+            "Split Type",
+            "Your Share",
+          ];
+
+      const sectionData = filteredData.filter((e) => e.type === type);
+
+      if (sectionData.length === 0) return; // nothing to add
+
+      const rows = sectionData.map((e, index) =>
+        isPersonal
+          ? [index + 1, e.amount, e.category, e.date]
+          : [
+              index + 1,
+              e.date,
+              e.group,
+              e.category,
+              e.amount,
+              e.splitType,
+              e.splitAmounts?.["You"] || "—",
+            ]
+      );
+
+      const worksheetData = [headers, ...rows];
+
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    };
+
+    if (mode === "personal" || mode === "group") {
+      addSheet(
+        mode,
+        mode === "personal" ? "Personal Expense" : "Group Expense"
+      );
+    } else if (mode === "both") {
+      addSheet("personal", "Personal Expense");
+      addSheet("group", "Group Expense");
+    }
+
+    const fileName =
+      mode === "personal"
+        ? "personal-expense-report.xlsx"
+        : mode === "group"
+        ? "group-expense-report.xlsx"
+        : "all-expense-report.xlsx";
+
+    XLSX.writeFile(workbook, fileName);
+  };
 
   const exportToPDF = (mode) => {
     const doc = new jsPDF();
@@ -168,25 +231,73 @@ export default function ExpenseList() {
           {filteredData.length > 0 && (
             <div className="dropdown">
               <button
-                className="btn btn-primary dropdown-toggle d-flex align-items-center gap-2"
+                className="btn btn-outline-primary dropdown-toggle d-flex align-items-center gap-2 shadow-sm px-3"
                 type="button"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
               >
-                <i className="bi bi-file-earmark-arrow-down"></i>
-                Export PDF
+                <i className="bi bi-download"></i>
+                Export Data
               </button>
 
-              <ul className="dropdown-menu shadow-sm">
-                {/* Show 'Export All' only if both data exist */}
+              <ul
+                className="dropdown-menu dropdown-menu-end p-2 rounded shadow-lg"
+                style={{ minWidth: "220px" }}
+              >
+                {/* Excel Section */}
+                <li className="fw-bold small text-uppercase text-primary px-2 py-1 d-flex align-items-center gap-1">
+                  <i className="bi bi-file-earmark-spreadsheet"></i> Excel
+                </li>
+
+                {personalExpenses.length > 0 && groupExpenses.length > 0 && (
+                  <li>
+                    <button
+                      className="dropdown-item d-flex align-items-center gap-2"
+                      onClick={() => exportToExcel("both")}
+                    >
+                      <i className="bi bi-collection"></i> All (XLSX)
+                    </button>
+                  </li>
+                )}
+
+                {personalExpenses.length > 0 && (
+                  <li>
+                    <button
+                      className="dropdown-item d-flex align-items-center gap-2"
+                      onClick={() => exportToExcel("personal")}
+                    >
+                      <i className="bi bi-person"></i> Personal (XLSX)
+                    </button>
+                  </li>
+                )}
+
+                {groupExpenses.length > 0 && (
+                  <li>
+                    <button
+                      className="dropdown-item d-flex align-items-center gap-2"
+                      onClick={() => exportToExcel("group")}
+                    >
+                      <i className="bi bi-people"></i> Group (XLSX)
+                    </button>
+                  </li>
+                )}
+
+                <li>
+                  <hr className="dropdown-divider" />
+                </li>
+
+                {/* PDF Section */}
+                <li className="fw-bold small text-uppercase text-danger px-2 py-1 d-flex align-items-center gap-1">
+                  <i className="bi bi-file-earmark-pdf"></i> PDF
+                </li>
+
                 {personalExpenses.length > 0 && groupExpenses.length > 0 && (
                   <li>
                     <button
                       className="dropdown-item d-flex align-items-center gap-2"
                       onClick={() => exportToPDF("both")}
                     >
-                      <i className="bi bi-files"></i>
-                      Export All
+                      <i className="bi bi-collection"></i> All (PDF)
                     </button>
                   </li>
                 )}
@@ -197,8 +308,7 @@ export default function ExpenseList() {
                       className="dropdown-item d-flex align-items-center gap-2"
                       onClick={() => exportToPDF("personal")}
                     >
-                      <i className="bi bi-person-lines-fill text-primary"></i>
-                      Export Personal
+                      <i className="bi bi-person"></i> Personal (PDF)
                     </button>
                   </li>
                 )}
@@ -209,8 +319,7 @@ export default function ExpenseList() {
                       className="dropdown-item d-flex align-items-center gap-2"
                       onClick={() => exportToPDF("group")}
                     >
-                      <i className="bi bi-people-fill text-success"></i>
-                      Export Group
+                      <i className="bi bi-people"></i> Group (PDF)
                     </button>
                   </li>
                 )}
