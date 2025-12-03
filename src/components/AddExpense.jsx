@@ -32,6 +32,41 @@ export default function AddExpense({ onSave }) {
 
   const [equalSplitData, setEqualSplitData] = useState([]);
   const [customSplitData, setCustomSplitData] = useState([]);
+  const [receiptImages, setReceiptImages] = React.useState([]);
+  const fileInputRef = React.useRef(null);
+
+  const handleReceiptChange = async (event) => {
+    const files = Array.from(event.target.files);
+
+    if (files.length === 0) {
+      setReceiptImages([]);
+      return;
+    }
+
+    const readFileAsDataURL = (file) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = () =>
+          resolve({
+            name: file.name,
+            dataUrl: reader.result,
+          });
+
+        reader.onerror = () => reject(reader.error);
+
+        reader.readAsDataURL(file);
+      });
+    };
+
+    try {
+      const images = await Promise.all(files.map(readFileAsDataURL));
+      setReceiptImages(images);
+    } catch (err) {
+      console.error("Error reading files", err);
+      alert("Something went wrong while reading the files.");
+    }
+  };
 
   // JOI VALIDATION SCHEMA
   const schema = Joi.object({
@@ -216,6 +251,7 @@ export default function AddExpense({ onSave }) {
       amount: parseFloat(amount),
       description,
       category,
+      receipts: receiptImages,
       type,
       group: type === "group" ? selectedGroup : null,
       groupId: type === "group" ? "G_" + Date.now() : null,
@@ -261,7 +297,6 @@ export default function AddExpense({ onSave }) {
                 }}
               />
               {errors.date && <p className="text-danger">{errors.date}</p>}
-
               {/* AMOUNT */}
               <label className="form-label fw-semibold">Amount (₹)</label>
               <input
@@ -274,7 +309,6 @@ export default function AddExpense({ onSave }) {
                 }}
               />
               {errors.amount && <p className="text-danger">{errors.amount}</p>}
-
               {/* DESCRIPTION */}
               <label className="form-label fw-semibold">Description</label>
               <input
@@ -289,7 +323,6 @@ export default function AddExpense({ onSave }) {
               {errors.description && (
                 <p className="text-danger">{errors.description}</p>
               )}
-
               {/* CATEGORY */}
               <label className="form-label fw-semibold">Category</label>
               <select
@@ -311,7 +344,6 @@ export default function AddExpense({ onSave }) {
               {errors.category && (
                 <p className="text-danger">{errors.category}</p>
               )}
-
               {/* ADD NEW CATEGORY */}
               <div className="d-flex gap-2 mb-4">
                 <input
@@ -330,6 +362,20 @@ export default function AddExpense({ onSave }) {
                 </button>
               </div>
               {error && <small className="text-danger">{error}</small>}
+              <div className="mb-3">
+                <label className="form-label">Upload Receipt(s)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="form-control"
+                  onChange={handleReceiptChange}
+                  ref={fileInputRef}
+                />
+                <small className="text-muted">
+                  You can upload one or more images (max a few MB each).
+                </small>
+              </div>{" "}
             </div>
 
             <div className="col-md-6">
