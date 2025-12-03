@@ -142,6 +142,9 @@ export default function ExpenseList() {
       return true;
     });
 
+  const personalExpenses = filteredData.filter((e) => e.type === "personal");
+  const groupExpenses = filteredData.filter((e) => e.type === "group");
+
   const clearSearch = () => {
     setSearch("");
     setFromDate("");
@@ -175,35 +178,42 @@ export default function ExpenseList() {
               </button>
 
               <ul className="dropdown-menu shadow-sm">
-                <li>
-                  <button
-                    className="dropdown-item d-flex align-items-center gap-2"
-                    onClick={() => exportToPDF("both")}
-                  >
-                    <i className="bi bi-files"></i>
-                    Export All (Filtered)
-                  </button>
-                </li>
+                {/* Show 'Export All' only if both data exist */}
+                {personalExpenses.length > 0 && groupExpenses.length > 0 && (
+                  <li>
+                    <button
+                      className="dropdown-item d-flex align-items-center gap-2"
+                      onClick={() => exportToPDF("both")}
+                    >
+                      <i className="bi bi-files"></i>
+                      Export All
+                    </button>
+                  </li>
+                )}
 
-                <li>
-                  <button
-                    className="dropdown-item d-flex align-items-center gap-2"
-                    onClick={() => exportToPDF("personal")}
-                  >
-                    <i className="bi bi-person-lines-fill text-primary"></i>
-                    Export Personal Only
-                  </button>
-                </li>
+                {personalExpenses.length > 0 && (
+                  <li>
+                    <button
+                      className="dropdown-item d-flex align-items-center gap-2"
+                      onClick={() => exportToPDF("personal")}
+                    >
+                      <i className="bi bi-person-lines-fill text-primary"></i>
+                      Export Personal
+                    </button>
+                  </li>
+                )}
 
-                <li>
-                  <button
-                    className="dropdown-item d-flex align-items-center gap-2"
-                    onClick={() => exportToPDF("group")}
-                  >
-                    <i className="bi bi-people-fill text-success"></i>
-                    Export Group Only
-                  </button>
-                </li>
+                {groupExpenses.length > 0 && (
+                  <li>
+                    <button
+                      className="dropdown-item d-flex align-items-center gap-2"
+                      onClick={() => exportToPDF("group")}
+                    >
+                      <i className="bi bi-people-fill text-success"></i>
+                      Export Group
+                    </button>
+                  </li>
+                )}
               </ul>
             </div>
           )}
