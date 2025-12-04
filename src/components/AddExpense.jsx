@@ -261,7 +261,7 @@ export default function AddExpense({ onSave }) {
     };
 
     const existing = JSON.parse(localStorage.getItem("expenses")) || [];
-    existing.push(expense);
+    existing.unshift(expense);
     localStorage.setItem("expenses", JSON.stringify(existing));
     navigate("/expenses");
 
